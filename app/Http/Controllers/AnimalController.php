@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Animal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class AnimalController extends Controller
@@ -13,9 +14,52 @@ class AnimalController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $url = $request->url();
+        $queryParams = $request->query();
+        ksort($queryParams);
+        $queryString = http_build_query($queryParams);
+        $fullUrl = "{$url}?{$queryString}";
+        
+        if (Cache::has($fullUrl)) {
+            return Cache::get($fullUrl);
+        }
+
+        // 设定预设值
+        $limit = $request->limit ?? 10;
+
+        $query = Animal::query();
+
+        // 筛选程式逻辑
+        if (isset($request->filters)) {
+            $filters = explode(',', $request->filters);
+            foreach ($filters as $key => $filter) {
+                list($key, $value) = explode(':', $filter);
+                $query->where($key, 'like', "%$value%");
+            }
+        }
+
+        // 排列顺序
+        if (isset($request->sorts)) {
+            $sorts = explode(',', $request->sorts);
+            foreach ($sorts as $key => $sort) {
+                list($key, $value) = explode(':', $sort);
+                if ($value == 'asc' || $value == 'desc') {
+                    $query->orderBy($key, $value);
+                }
+            }
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+
+        $animals = $query->paginate($limit)->appends($request->query());
+        
+        return Cache::remember($fullUrl, 60, function () use ($animals) {
+            return  response($animals, Response::HTTP_OK);
+        });
+       
     }
 
     /**
@@ -49,7 +93,7 @@ class AnimalController extends Controller
      */
     public function show(Animal $animal)
     {
-        //
+        return response($animal, Response::HTTP_OK);
     }
 
     /**
