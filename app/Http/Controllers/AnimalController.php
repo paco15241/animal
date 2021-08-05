@@ -80,6 +80,17 @@ class AnimalController extends Controller
      */
     public function store(Request $request)
     {
+        $this->validate($request, [
+            'type_id'     => 'nullable|integer',
+            'name'        => 'required|string|max:255',
+            'birthday'    => 'nullable|date',
+            'area'        => 'nullable|string|max:255',
+            'fix'         => 'required|boolean',
+            'description' => 'nullable',
+            'personality' => 'nullable',
+        ]);
+        $request['user_id'] = 1;  // 先写入1，后续于身分验证章节会修改
+
         $animal = Animal::create($request->all());
         $animal = $animal->refresh();
         return response($animal, Response::HTTP_CREATED);
@@ -116,6 +127,17 @@ class AnimalController extends Controller
      */
     public function update(Request $request, Animal $animal)
     {
+        $this->validate($request, [
+            'type_id'     => 'nullable|integer',
+            'name'        => 'string|max:255',
+            'birthday'    => 'nullable|date',
+            'area'        => 'nullable|string|max:255',
+            'fix'         => 'boolean',
+            'description' => 'nullable|string',
+            'personality' => 'nullable|string',
+        ]);
+        $request['user_id'] = 1;  // 先写入1，后续于身分验证章节会修改
+        
         $animal->update($request->all());
         return response($animal, Response::HTTP_OK);
     }
