@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\AnimalCollection;
+use App\Http\Resources\AnimalResource;
 use App\Models\Animal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -29,7 +31,7 @@ class AnimalController extends Controller
         // 设定预设值
         $limit = $request->limit ?? 10;
 
-        $query = Animal::query();
+        $query = Animal::query()->with('type');      // 加上 with，避免 N+1 问题
 
         // 筛选程式逻辑
         if (isset($request->filters)) {
@@ -57,7 +59,8 @@ class AnimalController extends Controller
         $animals = $query->paginate($limit)->appends($request->query());
         
         return Cache::remember($fullUrl, 60, function () use ($animals) {
-            return  response($animals, Response::HTTP_OK);
+            // return  response($animals, Response::HTTP_OK);
+            return new AnimalCollection($animals);
         });
        
     }
@@ -81,7 +84,7 @@ class AnimalController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'type_id'     => 'nullable|integer',
+            'type_id'     => 'nullable|exists:type,id',
             'name'        => 'required|string|max:255',
             'birthday'    => 'nullable|date',
             'area'        => 'nullable|string|max:255',
@@ -93,7 +96,8 @@ class AnimalController extends Controller
 
         $animal = Animal::create($request->all());
         $animal = $animal->refresh();
-        return response($animal, Response::HTTP_CREATED);
+        // return response($animal, Response::HTTP_CREATED);
+        return new AnimalResource($animal);
     }
 
     /**
@@ -104,7 +108,8 @@ class AnimalController extends Controller
      */
     public function show(Animal $animal)
     {
-        return response($animal, Response::HTTP_OK);
+        // return response($animal, Response::HTTP_OK);
+        return new AnimalResource($animal);
     }
 
     /**
@@ -128,7 +133,7 @@ class AnimalController extends Controller
     public function update(Request $request, Animal $animal)
     {
         $this->validate($request, [
-            'type_id'     => 'nullable|integer',
+            'type_id'     => 'nullable|exists:type,id',
             'name'        => 'string|max:255',
             'birthday'    => 'nullable|date',
             'area'        => 'nullable|string|max:255',
@@ -139,7 +144,8 @@ class AnimalController extends Controller
         $request['user_id'] = 1;  // 先写入1，后续于身分验证章节会修改
         
         $animal->update($request->all());
-        return response($animal, Response::HTTP_OK);
+        // return response($animal, Response::HTTP_OK);
+        return new AnimalResource($animal);
     }
 
     /**

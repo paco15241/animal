@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Animal;
+use App\Models\Type;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
@@ -20,7 +21,11 @@ class DatabaseSeeder extends Seeder
         Schema::disableForeignKeyConstraints();
         Animal::truncate();
         User::truncate();
+        Type::truncate();
 
+        // 先产生 Type 资料
+        Type::factory(5)->create();
+        
         // 建立5笔会员测试资料
         User::factory(5)->create();
 
